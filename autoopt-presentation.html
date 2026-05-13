@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>АвтоОпт — AI-Бизнес на автопилоте</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --black: #04050a;
+  --navy: #080d1a;
+  --blue: #1a6fff;
+  --blue-light: #4d9fff;
+  --gold: #f0c040;
+  --gold-dim: rgba(240,192,64,0.15);
+  --teal: #00ddb4;
+  --red: #ff4560;
+  --glass: rgba(255,255,255,0.035);
+  --glass-border: rgba(255,255,255,0.07);
+  --text: #e8eeff;
+  --muted: rgba(232,238,255,0.45);
+  --slide-count: 8;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--black);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  cursor: none;
+}
+
+/* ── CURSOR ── */
+#cur {
+  width: 8px; height: 8px;
+  background: var(--teal);
+  border-radius: 50%;
+  position: fixed; z-index: 9999;
+  pointer-events: none;
+  transform: translate(-50%,-50%);
+  transition: transform 0.05s;
+  mix-blend-mode: screen;
+}
+#cur2 {
+  width: 36px; height: 36px;
+  border: 1px solid rgba(26,111,255,0.5);
+  border-radius: 50%;
+  position: fixed; z-index: 9998;
+  pointer-events: none;
+  transform: translate(-50%,-50%);
+  transition: transform 0.35s cubic-bezier(.25,.46,.45,.94);
+}
+
+/* ── SLIDE WRAPPER ── */
+.deck {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 80px;
+  opacity: 0;
+  transform: translateY(60px) scale(0.98);
+  transition: opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
+  pointer-events: none;
+  z-index: 1;
+}
+.slide.active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+  z-index: 2;
+}
+.slide.exit {
+  opacity: 0;
+  transform: translateY(-50px) scale(1.01);
+  z-index: 1;
+}
+
+/* ── GLOBAL BG ORBS ── */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 1s;
+}
+.orb1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(26,111,255,0.18) 0%, transparent 70%); top: -200px; right: -100px; }
+.orb2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,221,180,0.1) 0%, transparent 70%); bottom: -150px; left: -100px; }
+.orb3 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(240,192,64,0.08) 0%, transparent 70%); top: 40%; left: 40%; }
+
+/* ── NOISE TEXTURE ── */
+.noise {
+  position: fixed; inset: 0; z-index: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* ── GRID ── */
+.grid-bg {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(26,111,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,111,255,0.04) 1px, transparent 1px);
+  background-size: 70px 70px;
+  pointer-events: none;
+}
+
+/* ── NAV DOTS ── */
+.dots {
+  position: fixed; right: 28px; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 100;
+}
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+.dot.on {
+  background: var(--teal);
+  width: 6px; height: 20px;
+  border-radius: 3px;
+  box-shadow: 0 0 10px var(--teal);
+}
+
+/* ── PROGRESS ── */
+.prog {
+  position: fixed; top: 0; left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  z-index: 100;
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 8px var(--teal);
+}
+
+/* ── SLIDE COUNT ── */
+.counter {
+  position: fixed; bottom: 30px; right: 40px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  z-index: 100;
+}
+
+/* ── NAV ARROWS ── */
+.nav-arr {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 12px;
+  z-index: 100;
+}
+.arr-btn {
+  width: 44px; height: 44px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+.arr-btn:hover { border-color: var(--blue); color: var(--text); background: rgba(26,111,255,0.1); }
+
+/* ── LOGO ── */
+.logo-badge {
+  position: fixed; top: 28px; left: 40px;
+  z-index: 100;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 12px var(--teal); }
+
+/* ═══════════════════════════════
+   SLIDE 1 — HERO
+═══════════════════════════════ */
+.s1-inner { max-width: 1100px; width: 100%; }
+.s1-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--teal);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  display: flex; align-items: center; gap: 12px;
+}
+.s1-tag::before { content: ''; width: 40px; height: 1px; background: var(--teal); }
+
+.s1-h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 10vw, 140px);
+  line-height: 0.92;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.s1-h1 span { color: var(--blue-light); }
+
+.s1-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 6vw, 80px);
+  line-height: 0.92;
+  color: var(--gold);
+  letter-spacing: 2px;
+  margin-bottom: 36px;
+}
+
+.s1-sub {
+  font-size: 17px;
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.7;
+  margin-bottom: 56px;
+  font-weight: 300;
+}
+
+.s1-stats {
+  display: flex; gap: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  background: var(--glass);
+  width: fit-content;
+}
+.stat-box {
+  padding: 24px 40px;
+  border-right: 1px solid var(--glass-border);
+  text-align: center;
+}
+.stat-box:last-child { border-right: none; }
+.stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+.stat-num.blue { color: var(--blue-light); }
+.stat-num.gold { color: var(--gold); }
+.stat-num.teal { color: var(--teal); }
+.stat-lbl {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════
+   SLIDE 2 — ПРОБЛЕМА
+═══════════════════════════════ */
+.s2-inner { max-width: 1100px; width: 100%; }
+.slide-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.slide-h {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(48px, 7vw, 90px);
+  line-height: 0.95;
+  letter-spacing: 2px;
+  margin-bottom: 48px;
+}
+.slide-h em { color: var(--red); font-style: normal; }
+
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.pain-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 28px 24px;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.3s, transform 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.pain-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--red), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.pain-card:hover { border-color: rgba(255,69,96,0.3); transform: translateY(-3px); }
+.pain-card:hover::before { opacity: 1; }
+.pain-icon { font-size: 28px; margin-bottom: 14px; }
+.pain-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.pain-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+.quote-bar {
+  margin-top: 28px;
+  padding: 18px 28px;
+  background: rgba(255,69,96,0.06);
+  border: 1px solid rgba(255,69,96,0.15);
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.quote-bar strong { color: var(--red); }
+
+/* ═══════════════════════════════
+   SLIDE 3 — РЕШЕНИЕ
+═══════════════════════════════ */
+.s3-inner { max-width: 1100px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+.s3-left {}
+.s3-sub { font-size: 16px; color: var(--muted); line-height: 1.75; margin-bottom: 36px; font-weight: 300; }
+.pill-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.pill {
+  padding: 8px 18px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+.pill.blue { background: rgba(26,111,255,0.1); border-color: rgba(26,111,255,0.3); color: var(--blue-light); }
+.pill.teal { background: rgba(0,221,180,0.08); border-color: rgba(0,221,180,0.3); color: var(--teal); }
+.pill.gold { background: rgba(240,192,64,0.08); border-color: rgba(240,192,64,0.3); color: var(--gold); }
+
+.s3-right {}
+.pillar-list { display: flex; flex-direction: column; gap: 16px; }
+.pillar {
+  display: flex; gap: 20px; align-items: flex-start;
+  padding: 22px 24px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s;
+}
+.pillar:hover { border-color: rgba(26,111,255,0.3); transform: translateX(6px); }
+.pillar-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  line-height: 1;
+  min-width: 40px;
+}
+.p1 .pillar-num { color: var(--blue-light); }
+.p2 .pillar-num { color: var(--teal); }
+.p3 .pillar-num { color: var(--gold); }
+.pillar-body {}
+.pillar-t { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.pillar-d { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* ═══════════════════════════════
+   SLIDE 4 — КАК РАБОТАЕТ
+═══════════════════════════════ */
+.s4-inner { max-width: 1100px; width: 100%; }
+.flow-wrap {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-top: 40px;
+  position: relative;
+}
+.flow-wrap::before {
+  content: '';
+  position: absolute;
+  top: 48px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 1px;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  z-index: 0;
+}
+.flow-step {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center;
+  padding: 0 16px;
+  position: relative;
+  z-index: 1;
+}
+.flow-circle {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+  margin-bottom: 20px;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  background: var(--glass);
+  position: relative;
+}
+.flow-circle::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.flow-step:hover .flow-circle { border-color: var(--blue-light); }
+.fc1 { background: rgba(26,111,255,0.12); border-color: rgba(26,111,255,0.3) !important; }
+.fc2 { background: rgba(0,221,180,0.08); border-color: rgba(0,221,180,0.3) !important; }
+.fc3 { background: rgba(240,192,64,0.08); border-color: rgba(240,192,64,0.3) !important; }
+.fc4 { background: rgba(255,69,96,0.06); border-color: rgba(255,69,96,0.3) !important; }
+.flow-t { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.flow-d { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.result-bar {
+  margin-top: 40px;
+  padding: 20px 32px;
+  background: linear-gradient(135deg, rgba(26,111,255,0.08), rgba(0,221,180,0.06));
+  border: 1px solid rgba(26,111,255,0.2);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.rb-text { font-size: 15px; color: var(--text); }
+.rb-text strong { color: var(--teal); }
+.rb-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+/* ═══════════════════════════════
+   SLIDE 5 — AI СТЕК
+═══════════════════════════════ */
+.s5-inner { max-width: 1100px; width: 100%; }
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 36px;
+}
+.tool-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 22px 18px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.tool-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--tc-color, var(--blue));
+  transform: scaleX(0);
+  transition: transform 0.3s;
+}
+.tool-card:hover { transform: translateY(-4px); }
+.tool-card:hover::after { transform: scaleX(1); }
+.tool-emoji { font-size: 26px; margin-bottom: 12px; }
+.tool-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.tool-role { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.tool-tag {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════
+   SLIDE 6 — ДОХОД
+═══════════════════════════════ */
+.s6-inner { max-width: 1000px; width: 100%; }
+.income-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 36px;
+  font-size: 14px;
+}
+.income-table th {
+  text-align: left;
+  padding: 14px 20px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--glass-border);
+  font-weight: 500;
+}
+.income-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.income-table tr { transition: background 0.2s; }
+.income-table tr:hover td { background: rgba(255,255,255,0.02); }
+.income-table tr.highlight td { background: rgba(26,111,255,0.06); }
+.tc-gold { color: var(--gold); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.tc-teal { color: var(--teal); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.tc-blue { color: var(--blue-light); font-family: 'JetBrains Mono', monospace; }
+.tc-muted { color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+.rule-box {
+  margin-top: 24px;
+  padding: 16px 24px;
+  background: rgba(240,192,64,0.06);
+  border: 1px solid rgba(240,192,64,0.15);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.rule-box strong { color: var(--gold); }
+
+/* ═══════════════════════════════
+   SLIDE 7 — ТАЙМЛАЙН
+═══════════════════════════════ */
+.s7-inner { max-width: 1100px; width: 100%; }
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 36px;
+}
+.week-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 22px 18px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+  position: relative;
+}
+.week-card:hover { border-color: rgba(26,111,255,0.3); transform: translateY(-4px); }
+.week-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+}
+.week-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.week-result {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.week-result strong { color: var(--teal); }
+.week-badge {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+}
+
+.bottom-bar {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+}
+.bb-item {
+  flex: 1;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(0,221,180,0.08), rgba(26,111,255,0.06));
+  border: 1px solid rgba(0,221,180,0.15);
+  border-radius: 10px;
+  display: flex; align-items: center; gap: 14px;
+}
+.bb-icon { font-size: 22px; }
+.bb-t { font-size: 13px; font-weight: 600; color: var(--text); }
+.bb-d { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ═══════════════════════════════
+   SLIDE 8 — CTA
+═══════════════════════════════ */
+.s8-inner { max-width: 900px; width: 100%; text-align: center; }
+.s8-over {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--teal);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+}
+.s8-h {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(60px, 9vw, 120px);
+  line-height: 0.9;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+.s8-h span { color: var(--gold); }
+.s8-sub {
+  font-size: 18px;
+  color: var(--muted);
+  margin-bottom: 56px;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+.cta-grid {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 56px;
+}
+.cta-card {
+  padding: 28px 36px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  min-width: 200px;
+  transition: all 0.3s;
+}
+.cta-card:hover { border-color: rgba(26,111,255,0.4); transform: translateY(-4px); }
+.cta-card-icon { font-size: 32px; margin-bottom: 12px; }
+.cta-card-t { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.cta-card-d { font-size: 12px; color: var(--muted); }
+
+.s8-footer {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.s8-footer strong { color: var(--text); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,221,180,0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(0,221,180,0); }
+}
+
+.slide.active .s1-tag,
+.slide.active .slide-tag,
+.slide.active .s8-over { animation: fadeUp 0.5s 0.1s both ease; }
+.slide.active .s1-h1,
+.slide.active .slide-h,
+.slide.active .s8-h { animation: fadeUp 0.5s 0.2s both ease; }
+.slide.active .s1-h2 { animation: fadeUp 0.5s 0.28s both ease; }
+.slide.active .s1-sub,
+.slide.active .s3-sub,
+.slide.active .s8-sub { animation: fadeUp 0.5s 0.35s both ease; }
+.slide.active .s1-stats { animation: fadeUp 0.5s 0.45s both ease; }
+.slide.active .pain-grid,
+.slide.active .pillar-list,
+.slide.active .tool-grid,
+.slide.active .flow-wrap,
+.slide.active .income-table,
+.slide.active .timeline,
+.slide.active .cta-grid { animation: fadeUp 0.6s 0.4s both ease; }
+.slide.active .quote-bar,
+.slide.active .result-bar,
+.slide.active .rule-box,
+.slide.active .bottom-bar { animation: fadeUp 0.5s 0.55s both ease; }
+.slide.active .pill-row { animation: fadeUp 0.5s 0.5s both ease; }
+.slide.active .s3-right { animation: fadeUp 0.6s 0.3s both ease; }
+.slide.active .cta-grid { animation: fadeUp 0.5s 0.45s both ease; }
+.slide.active .s8-footer { animation: fadeUp 0.5s 0.7s both ease; }
+
+.logo-dot { animation: pulse-ring 2.5s infinite; }
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur2"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<div class="noise"></div>
+<div class="grid-bg"></div>
+
+<!-- LOGO -->
+<div class="logo-badge">
+  <div class="logo-dot"></div>
+  АВТООПТ
+</div>
+
+<!-- PROGRESS -->
+<div class="prog" id="prog"></div>
+
+<!-- NAV DOTS -->
+<div class="dots" id="dots"></div>
+
+<!-- COUNTER -->
+<div class="counter" id="counter">01 / 08</div>
+
+<!-- ARROWS -->
+<div class="nav-arr">
+  <button class="arr-btn" onclick="go(-1)">↑</button>
+  <button class="arr-btn" onclick="go(1)">↓</button>
+</div>
+
+<!-- ══════════ SLIDES ══════════ -->
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: HERO -->
+  <section class="slide" data-slide="0">
+    <div class="s1-inner">
+      <div class="s1-tag">AI · Автоматизация · Товарный бизнес</div>
+      <div class="s1-h1">АВТО<span>ОПТ</span></div>
+      <div class="s1-h2">Бизнес на автопилоте</div>
+      <p class="s1-sub">Полностью автоматизированная AI-платформа для товарного бизнеса. Контент, продажи, поддержка и аналитика работают 24/7 — без команды, без ручного труда.</p>
+      <div class="s1-stats">
+        <div class="stat-box">
+          <div class="stat-num blue">24/7</div>
+          <div class="stat-lbl">Работа без остановок</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num gold">×10</div>
+          <div class="stat-lbl">Рост производительности</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num teal">2 ч</div>
+          <div class="stat-lbl">Твоё время в неделю</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num blue">8</div>
+          <div class="stat-lbl">Недель до запуска</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: ПРОБЛЕМА -->
+  <section class="slide" data-slide="1">
+    <div class="s2-inner">
+      <div class="slide-tag">// Проблема рынка</div>
+      <div class="slide-h">Ручной труд<br><em>убивает</em> масштаб</div>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <div class="pain-icon">📲</div>
+          <div class="pain-title">Контент каждый день вручную</div>
+          <div class="pain-desc">Видео, посты, описания — кто-то должен это делать постоянно. Стоп контента = стоп роста.</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-icon">📦</div>
+          <div class="pain-title">Анализ товаров занимает часы</div>
+          <div class="pain-desc">Найти прибыльную нишу, проверить конкурентов, рассчитать маржу — всё вручную, всё ненадёжно.</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-icon">💬</div>
+          <div class="pain-title">Поддержка съедает команду</div>
+          <div class="pain-desc">Один и тот же вопрос 100 раз в день. Менеджер нужен 24/7, отпуск — роскошь.</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-icon">🔁</div>
+          <div class="pain-title">Нет системы удержания</div>
+          <div class="pain-desc">Клиент купил — и пропал. Нет онбординга, нет апсейла, нет реактивации. Деньги уходят.</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-icon">📉</div>
+          <div class="pain-title">Слабый бренд, много копий</div>
+          <div class="pain-desc">Мошенники клонируют канал. Аудитория не знает кто настоящий. Репутация под угрозой.</div>
+        </div>
+        <div class="pain-card">
+          <div class="pain-icon">⏳</div>
+          <div class="pain-title">Владелец = главный сотрудник</div>
+          <div class="pain-desc">Бизнес держится на одном человеке. Выгорание неизбежно. Масштаб невозможен.</div>
+        </div>
+      </div>
+      <div class="quote-bar">Владелец тратит <strong>80% времени на рутину</strong> вместо стратегии и роста. Это не бизнес — это самозанятость.</div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: РЕШЕНИЕ -->
+  <section class="slide" data-slide="2">
+    <div class="s3-inner">
+      <div class="s3-left">
+        <div class="slide-tag">// Решение</div>
+        <div class="slide-h">AI берёт<br>рутину<br>на себя</div>
+        <p class="s3-sub">АвтоОпт — это не инструмент, это операционная система для товарного бизнеса. Claude, HeyGen, ElevenLabs, Make.com работают как единый механизм вместо целой команды.</p>
+        <div class="pill-row">
+          <span class="pill blue">Claude API</span>
+          <span class="pill teal">HeyGen</span>
+          <span class="pill gold">ElevenLabs</span>
+          <span class="pill blue">Make.com</span>
+          <span class="pill teal">Stripe</span>
+          <span class="pill gold">Telegram Bot</span>
+          <span class="pill blue">DALL-E 3</span>
+          <span class="pill teal">Airtable</span>
+        </div>
+      </div>
+      <div class="s3-right">
+        <div class="pillar-list">
+          <div class="pillar p1">
+            <div class="pillar-num">01</div>
+            <div class="pillar-body">
+              <div class="pillar-t">SaaS-подписка</div>
+              <div class="pillar-d">AI-инструмент анализа товаров и ниш. Пользователь платит ежемесячно — получает готовую аналитику прямо в Telegram.</div>
+            </div>
+          </div>
+          <div class="pillar p2">
+            <div class="pillar-num">02</div>
+            <div class="pillar-body">
+              <div class="pillar-t">Партнёрская сеть поставщиков</div>
+              <div class="pillar-d">Каталог проверенных поставщиков. Каждое подключение приносит комиссию автоматически через отслеживаемые ссылки.</div>
+            </div>
+          </div>
+          <div class="pillar p3">
+            <div class="pillar-num">03</div>
+            <div class="pillar-body">
+              <div class="pillar-t">Рекламная платформа</div>
+              <div class="pillar-d">Бренды платят за доступ к аудитории покупателей с намерением. Продажа размещений без ручного управления.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: КАК РАБОТАЕТ -->
+  <section class="slide" data-slide="3">
+    <div class="s4-inner">
+      <div class="slide-tag">// Механика</div>
+      <div class="slide-h">Как это<br>работает</div>
+      <div class="flow-wrap">
+        <div class="flow-step">
+          <div class="flow-circle fc1">🎯</div>
+          <div class="flow-t">Органический трафик</div>
+          <div class="flow-d">AI генерирует контент для YouTube, TikTok, Telegram, ВК, Дзен каждый день автоматически</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-circle fc2">🤖</div>
+          <div class="flow-t">Telegram-бот</div>
+          <div class="flow-d">Встречает пользователя, даёт 3 дня бесплатно, отвечает на вопросы через Claude AI</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-circle fc3">💳</div>
+          <div class="flow-t">Автооплата Stripe</div>
+          <div class="flow-d">Подписка активируется автоматически, Stripe списывает ежемесячно без участия человека</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-circle fc4">📈</div>
+          <div class="flow-t">Рост и реинвест</div>
+          <div class="flow-d">A/B тесты выбирают лучший контент автоматически. Реферальная система множит аудиторию</div>
+        </div>
+      </div>
+      <div class="result-bar">
+        <div class="rb-text">Вся цепочка от <strong>первого просмотра</strong> до <strong>ежемесячного платежа</strong> — без единого ручного касания</div>
+        <div class="rb-num">0 сотрудников</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: AI СТЕК -->
+  <section class="slide" data-slide="4">
+    <div class="s5-inner">
+      <div class="slide-tag">// Технологический стек</div>
+      <div class="slide-h">Команда из<br>AI-инструментов</div>
+      <div class="tool-grid">
+        <div class="tool-card" style="--tc-color: #4d9fff;">
+          <div class="tool-emoji">🧠</div>
+          <div class="tool-name">Claude API</div>
+          <div class="tool-role">Пишет весь контент, отвечает в боте, анализирует товары и A/B тесты</div>
+          <span class="tool-tag" style="background:rgba(77,159,255,0.1);color:#4d9fff;border:1px solid rgba(77,159,255,0.3)">ЯДРО</span>
+        </div>
+        <div class="tool-card" style="--tc-color: #00ddb4;">
+          <div class="tool-emoji">🎬</div>
+          <div class="tool-name">HeyGen</div>
+          <div class="tool-role">Создаёт видео с AI-аватаром. Лицо канала без реального человека</div>
+          <span class="tool-tag" style="background:rgba(0,221,180,0.1);color:#00ddb4;border:1px solid rgba(0,221,180,0.3)">ВИДЕО</span>
+        </div>
+        <div class="tool-card" style="--tc-color: #f0c040;">
+          <div class="tool-emoji">🎙️</div>
+          <div class="tool-name">ElevenLabs</div>
+          <div class="tool-role">Озвучивает сценарии живым голосом. Диктор не нужен никогда</div>
+          <span class="tool-tag" style="background:rgba(240,192,64,0.1);color:#f0c040;border:1px solid rgba(240,192,64,0.3)">ГОЛОС</span>
+        </div>
+        <div class="tool-card" style="--tc-color: #a855f7;">
+          <div class="tool-emoji">⚙️</div>
+          <div class="tool-name">Make.com</div>
+          <div class="tool-role">Оркестрирует всё. Связывает каждый инструмент в единый автоматический конвейер</div>
+          <span class="tool-tag" style="background:rgba(168,85,247,0.1);color:#a855f7;border:1px solid rgba(168,85,247,0.3)">ОРКЕСТР</span>
+        </div>
+        <div class="tool-card" style="--tc-color: #ff4560;">
+          <div class="tool-emoji">🖼️</div>
+          <div class="tool-name">DALL-E 3</div>
+          <div class="tool-role">Генерирует обложки, иллюстрации и картинки для постов без дизайнера</div>
+          <span class="tool-tag" style="background:rgba(255,69,96,0.1);color:#ff4560;border:1px solid rgba(255,69,96,0.3)">ВИЗУАЛ</span>
+        </div>
+        <div class="tool-card" style="--tc-color: #4d9fff;">
+          <div class="tool-emoji">💳</div>
+          <div class="tool-name">Stripe</div>
+          <div class="tool-role">Управляет подписками, списывает деньги, обрабатывает апсейлы автоматически</div>
+          <span class="tool-tag" style="background:rgba(77,159,255,0.1);color:#4d9fff;border:1px solid rgba(77,159,255,0.3)">ДЕНЬГИ</span>
+        </div>
+        <div class="tool-card" style="--tc-color: #00ddb4;">
+          <div class="tool-emoji">🤖</div>
+          <div class="tool-name">Telegram Bot</div>
+          <div class="tool-role">Главный канал продаж: онбординг, поддержка, рефералы, уведомления</div>
+          <span class="tool-tag" style="background:rgba(0,221,180,0.1);color:#00ddb4;border:1px solid rgba(0,221,180,0.3)">КАНАЛ</span>
+        </div>
+        <div class="tool-card" style="--tc-color: #f0c040;">
+          <div class="tool-emoji">📊</div>
+          <div class="tool-name">Airtable</div>
+          <div class="tool-role">База пользователей, трекер A/B тестов, дашборд результатов без кода</div>
+          <span class="tool-tag" style="background:rgba(240,192,64,0.1);color:#f0c040;border:1px solid rgba(240,192,64,0.3)">ДАННЫЕ</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: ДОХОД -->
+  <section class="slide" data-slide="5">
+    <div class="s6-inner">
+      <div class="slide-tag">// Финансовая модель</div>
+      <div class="slide-h">Твой доход<br>на руки</div>
+      <table class="income-table">
+        <thead>
+          <tr>
+            <th>Месячная выручка</th>
+            <th>Расходы</th>
+            <th>Реинвестиции</th>
+            <th>ТВОЙ ДОХОД</th>
+            <th>%</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="tc-muted">0 — 50 000 ₽</td>
+            <td class="tc-muted">5 000 ₽</td>
+            <td class="tc-muted">40 000 ₽</td>
+            <td class="tc-blue">5 000 ₽</td>
+            <td class="tc-muted">10%</td>
+          </tr>
+          <tr>
+            <td class="tc-muted">50 — 200 000 ₽</td>
+            <td class="tc-muted">15 000 ₽</td>
+            <td class="tc-muted">120 000 ₽</td>
+            <td class="tc-blue">до 65 000 ₽</td>
+            <td class="tc-muted">33%</td>
+          </tr>
+          <tr class="highlight">
+            <td class="tc-muted">200 — 500 000 ₽</td>
+            <td class="tc-muted">30 000 ₽</td>
+            <td class="tc-muted">200 000 ₽</td>
+            <td class="tc-gold">120 — 270 000 ₽</td>
+            <td class="tc-gold">40%</td>
+          </tr>
+          <tr class="highlight">
+            <td class="tc-muted">500 000 — 1,5 млн ₽</td>
+            <td class="tc-muted">50 000 ₽</td>
+            <td class="tc-muted">300 000 ₽</td>
+            <td class="tc-gold">300 000 — 1 млн ₽</td>
+            <td class="tc-gold">50%</td>
+          </tr>
+          <tr>
+            <td class="tc-muted">1,5 — 5 млн ₽</td>
+            <td class="tc-muted">80 000 ₽</td>
+            <td class="tc-muted">500 000 ₽</td>
+            <td class="tc-teal">1,1 — 4,3 млн ₽</td>
+            <td class="tc-teal">55–60%</td>
+          </tr>
+          <tr>
+            <td class="tc-muted">5 млн ₽+</td>
+            <td class="tc-muted">150 000 ₽</td>
+            <td class="tc-muted">800 000 ₽</td>
+            <td class="tc-teal">4 млн ₽+</td>
+            <td class="tc-teal">65%+</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="rule-box">
+        <strong>Правило:</strong> до 200к ₽/мес — всё в реинвест. 200–500к — берёшь 40%. Свыше 500к — <strong>50–65% твои, остальное ускоряет рост.</strong> Ты анонимен. Stripe переводит на счёт автоматически.
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: ТАЙМЛАЙН -->
+  <section class="slide" data-slide="6">
+    <div class="s7-inner">
+      <div class="slide-tag">// План запуска</div>
+      <div class="slide-h">8 недель<br>до дохода</div>
+      <div class="timeline">
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(26,111,255,0.15);">🤖</div>
+          <div class="week-num">НЕДЕЛЯ 01</div>
+          <div class="week-title">Telegram-бот + Stripe</div>
+          <div class="week-result">Бот принимает оплату. <strong>Бизнес технически живёт.</strong></div>
+        </div>
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(0,221,180,0.1);">📊</div>
+          <div class="week-num">НЕДЕЛЯ 02</div>
+          <div class="week-title">AI-анализ товаров + поддержка</div>
+          <div class="week-result">Бот отвечает на вопросы и <strong>анализирует ниши.</strong></div>
+        </div>
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(240,192,64,0.1);">✍️</div>
+          <div class="week-num">НЕДЕЛЯ 03</div>
+          <div class="week-title">Генератор контента</div>
+          <div class="week-result"><strong>Ежедневный контент</strong> создаётся автоматически.</div>
+        </div>
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(168,85,247,0.1);">🌐</div>
+          <div class="week-num">НЕДЕЛЯ 04</div>
+          <div class="week-title">Дистрибуция + Сайт</div>
+          <div class="week-result">Контент идёт <strong>на все платформы</strong> одновременно.</div>
+        </div>
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(255,69,96,0.1);">🎬</div>
+          <div class="week-num">НЕДЕЛЯ 05</div>
+          <div class="week-title">Видео-конвейер HeyGen</div>
+          <div class="week-result">AI-аватар публикует видео <strong>без твоего лица.</strong></div>
+        </div>
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(26,111,255,0.15);">📈</div>
+          <div class="week-num">НЕДЕЛЯ 06</div>
+          <div class="week-title">A/B тесты + трекинг</div>
+          <div class="week-result">Система <strong>учится сама</strong> какой контент работает.</div>
+        </div>
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(0,221,180,0.1);">🔗</div>
+          <div class="week-num">НЕДЕЛЯ 07</div>
+          <div class="week-title">Реферальная система</div>
+          <div class="week-result">Пользователи <strong>сами приводят</strong> новых пользователей.</div>
+        </div>
+        <div class="week-card">
+          <div class="week-badge" style="background:rgba(240,192,64,0.1);">💰</div>
+          <div class="week-num">НЕДЕЛЯ 08</div>
+          <div class="week-title">Лицензия системы</div>
+          <div class="week-result"><strong>Продаёшь копию</strong> системы другим нишам. Поток 2.</div>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <div class="bb-item">
+          <div class="bb-icon">⚡</div>
+          <div><div class="bb-t">Каждый шаг строится через Claude Code</div><div class="bb-d">Готовые промпты — вставил и запустил</div></div>
+        </div>
+        <div class="bb-item">
+          <div class="bb-icon">🔒</div>
+          <div><div class="bb-t">Ты остаёшься полностью анонимным</div><div class="bb-d">Никакого публичного присутствия не требуется</div></div>
+        </div>
+        <div class="bb-item">
+          <div class="bb-icon">🌍</div>
+          <div><div class="bb-t">После российского рынка — Европа</div><div class="bb-d">Та же система, новая локализация</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: CTA -->
+  <section class="slide" data-slide="7">
+    <div class="s8-inner">
+      <div class="s8-over">// Следующий шаг</div>
+      <div class="s8-h">Построй<br>раз — <span>зарабатывай</span><br>всегда</div>
+      <p class="s8-sub">Система запускается за 8 недель. Работает без тебя. Масштабируется сама.<br>Ты остаёшься невидимым и получаешь пассивный доход.</p>
+      <div class="cta-grid">
+        <div class="cta-card">
+          <div class="cta-card-icon">🤖</div>
+          <div class="cta-card-t">Шаг 1 — Сегодня</div>
+          <div class="cta-card-d">Открой Claude Code, вставь промпт Задачи 1 — запусти Telegram-бот</div>
+        </div>
+        <div class="cta-card">
+          <div class="cta-card-icon">💳</div>
+          <div class="cta-card-t">Шаг 2 — Неделя 1</div>
+          <div class="cta-card-d">Подключи Stripe — бизнес начинает принимать деньги</div>
+        </div>
+        <div class="cta-card">
+          <div class="cta-card-icon">⚙️</div>
+          <div class="cta-card-t">Шаг 3 — Неделя 4</div>
+          <div class="cta-card-d">Настрой Make.com — весь контент идёт везде автоматически</div>
+        </div>
+        <div class="cta-card">
+          <div class="cta-card-icon">📈</div>
+          <div class="cta-card-t">Результат — Месяц 2</div>
+          <div class="cta-card-d">Система работает, аудитория растёт, первые рубли капают</div>
+        </div>
+      </div>
+      <div class="s8-footer">Построено на базе анализа <strong>Optop</strong> · Стратегия разработана под российский рынок · Масштаб — без ограничений</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ── CURSOR ──
+const cur = document.getElementById('cur');
+const cur2 = document.getElementById('cur2');
+let mx=0, my=0, tx=0, ty=0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left = mx+'px'; cur.style.top = my+'px';
+});
+(function loop() {
+  tx += (mx-tx)*0.14; ty += (my-ty)*0.14;
+  cur2.style.left = tx+'px'; cur2.style.top = ty+'px';
+  requestAnimationFrame(loop);
+})();
+
+// ── SLIDES ──
+const slides = document.querySelectorAll('.slide');
+const n = slides.length;
+let cur_s = 0;
+let animating = false;
+
+// BUILD DOTS
+const dotsEl = document.getElementById('dots');
+slides.forEach((_,i) => {
+  const d = document.createElement('button');
+  d.className = 'dot' + (i===0?' on':'');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+});
+
+function updateUI() {
+  const dots = dotsEl.querySelectorAll('.dot');
+  dots.forEach((d,i) => d.classList.toggle('on', i===cur_s));
+  document.getElementById('counter').textContent =
+    String(cur_s+1).padStart(2,'0') + ' / ' + String(n).padStart(2,'0');
+  document.getElementById('prog').style.width =
+    ((cur_s/(n-1))*100) + '%';
+}
+
+function goTo(idx) {
+  if (idx === cur_s || animating) return;
+  if (idx < 0 || idx >= n) return;
+  animating = true;
+  slides[cur_s].classList.remove('active');
+  slides[cur_s].classList.add('exit');
+  setTimeout(() => {
+    slides[cur_s].classList.remove('exit');
+    cur_s = idx;
+    slides[cur_s].classList.add('active');
+    updateUI();
+    setTimeout(() => animating = false, 700);
+  }, 350);
+}
+
+function go(dir) { goTo(cur_s + dir); }
+
+// Init first slide
+slides[0].classList.add('active');
+updateUI();
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); go(-1); }
+  if (e.key === 'ArrowRight') go(1);
+  if (e.key === 'ArrowLeft') go(-1);
+});
+
+// Wheel
+let wheelTimer;
+document.addEventListener('wheel', e => {
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(() => {
+    go(e.deltaY > 0 ? 1 : -1);
+  }, 80);
+}, { passive: true });
+
+// Touch
+let touchY = 0;
+document.addEventListener('touchstart', e => touchY = e.touches[0].clientY, { passive: true });
+document.addEventListener('touchend', e => {
+  const dy = touchY - e.changedTouches[0].clientY;
+  if (Math.abs(dy) > 50) go(dy > 0 ? 1 : -1);
+}, { passive: true });
+</script>
+</body>
+</html>
