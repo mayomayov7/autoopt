@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>АвтоОпт — AI-Бизнес на автопилоте</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#04050a;--blue:#1a6fff;--blue-l:#4d9fff;
+  --gold:#f0c040;--teal:#00ddb4;--red:#ff4560;
+  --glass:rgba(255,255,255,0.04);--gb:rgba(255,255,255,0.08);
+  --text:#e8eeff;--muted:rgba(232,238,255,0.45);
+}
+body{background:var(--black);color:var(--text);font-family:'Outfit',sans-serif;overflow-x:hidden}
+.orb{position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+.orb1{width:500px;height:500px;background:radial-gradient(circle,rgba(26,111,255,0.2) 0%,transparent 70%);top:-150px;right:-80px}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(0,221,180,0.12) 0%,transparent 70%);bottom:-100px;left:-80px}
+.grid-bg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(26,111,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(26,111,255,0.04) 1px,transparent 1px);background-size:70px 70px;pointer-events:none}
+.logo{position:fixed;top:18px;left:22px;z-index:100;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;display:flex;align-items:center;gap:8px}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,221,180,0.5)}50%{box-shadow:0 0 0 10px rgba(0,221,180,0)}}
+.tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal);letter-spacing:4px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.tag::before{content:'';width:30px;height:1px;background:var(--teal)}
+.h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,7vw,100px);line-height:0.92;letter-spacing:2px;margin-bottom:10px}
+.h1 em{color:var(--blue-l);font-style:normal}
+.h1 b{color:var(--gold)}
+.h1 s{color:var(--red);text-decoration:none}
+.sub{font-size:15px;color:var(--muted);line-height:1.75;font-weight:300;margin-bottom:24px}
+.gc{background:var(--glass);border:1px solid var(--gb);border-radius:14px;padding:20px 16px;backdrop-filter:blur(12px);transition:all 0.3s}
+.gc:hover{border-color:rgba(26,111,255,0.3);transform:translateY(-3px)}
+.pill{display:inline-block;padding:5px 13px;border-radius:100px;font-size:11px;font-weight:500;border:1px solid}
+.pb{background:rgba(26,111,255,0.1);border-color:rgba(26,111,255,0.3);color:var(--blue-l)}
+.pt{background:rgba(0,221,180,0.08);border-color:rgba(0,221,180,0.3);color:var(--teal)}
+.pg{background:rgba(240,192,64,0.08);border-color:rgba(240,192,64,0.3);color:var(--gold)}
+.ibar{margin-top:18px;padding:14px 20px;background:rgba(26,111,255,0.06);border:1px solid rgba(26,111,255,0.18);border-radius:10px;font-size:13px;line-height:1.6}
+.ibar strong{color:var(--teal)}
+.ibar-r{background:rgba(255,69,96,0.05);border-color:rgba(255,69,96,0.15)}
+.ibar-y{background:rgba(240,192,64,0.05);border-color:rgba(240,192,64,0.15)}
+.c-b{color:var(--blue-l)}.c-g{color:var(--gold)}.c-t{color:var(--teal)}.c-r{color:var(--red)}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ══ DESKTOP SLIDE MODE ══ */
+@media(min-width:769px){
+  body{overflow:hidden;cursor:none;height:100vh}
+  #cur{width:8px;height:8px;background:var(--teal);border-radius:50%;position:fixed;z-index:9999;pointer-events:none;transform:translate(-50%,-50%);mix-blend-mode:screen}
+  #cur2{width:36px;height:36px;border:1px solid rgba(26,111,255,0.5);border-radius:50%;position:fixed;z-index:9998;pointer-events:none;transform:translate(-50%,-50%);transition:transform 0.35s}
+  .deck{width:100vw;height:100vh;position:relative;overflow:hidden}
+  .slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:60px 80px;opacity:0;transform:translateY(56px) scale(0.98);transition:opacity 0.65s cubic-bezier(.4,0,.2,1),transform 0.65s cubic-bezier(.4,0,.2,1);pointer-events:none;z-index:1}
+  .slide.active{opacity:1;transform:none;pointer-events:all;z-index:2}
+  .slide.exit{opacity:0;transform:translateY(-40px) scale(1.01);z-index:1}
+  .prog{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--teal));z-index:100;transition:width 0.5s;box-shadow:0 0 8px var(--teal)}
+  .dots{position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:100}
+  .dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.2);cursor:pointer;transition:all 0.3s;border:none}
+  .dot.on{background:var(--teal);height:20px;border-radius:3px;box-shadow:0 0 10px var(--teal)}
+  .ctr{position:fixed;bottom:22px;right:34px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;z-index:100}
+  .nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:100}
+  .abtn{width:40px;height:40px;border:1px solid var(--gb);background:var(--glass);border-radius:50%;color:var(--muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;backdrop-filter:blur(10px)}
+  .abtn:hover{border-color:var(--blue);color:var(--text)}
+  @keyframes fu{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+  .slide.active .a1{animation:fu 0.5s 0.08s both}
+  .slide.active .a2{animation:fu 0.5s 0.18s both}
+  .slide.active .a3{animation:fu 0.55s 0.28s both}
+  .slide.active .a4{animation:fu 0.55s 0.38s both}
+  .slide.active .a5{animation:fu 0.5s 0.48s both}
+  /* desktop grids */
+  .g2d{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .g3d{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+  .g4d{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+  .flow-d{display:grid;grid-template-columns:repeat(4,1fr);position:relative;margin-top:28px}
+  .flow-d::before{content:'';position:absolute;top:42px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,var(--blue),var(--teal))}
+}
+
+/* ══ MOBILE SCROLL MODE ══ */
+@media(max-width:768px){
+  body{overflow-y:auto;height:auto}
+  #cur,#cur2,.prog,.dots,.ctr,.nav{display:none!important}
+  .deck{height:auto}
+  .slide{position:relative;display:block;opacity:1;transform:none;pointer-events:all;padding:72px 18px 52px;border-bottom:1px solid var(--gb)}
+  .slide:last-child{border-bottom:none}
+  .logo{top:14px;left:14px;font-size:16px}
+  .h1{font-size:clamp(38px,11vw,58px)}
+  .sub{font-size:14px}
+  /* mobile grids - all single column */
+  .g2d{display:flex;flex-direction:column;gap:22px}
+  .g3d{display:grid;grid-template-columns:1fr;gap:10px}
+  .g4d{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  /* mobile flow - 2 col */
+  .flow-d{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+  .flow-d::before{display:none}
+  .fcirc{width:60px;height:60px;font-size:22px;margin-bottom:10px}
+  .ftit{font-size:12px}
+  .fdesc{font-size:11px}
+  .gc{padding:14px 13px}
+  .ibar{font-size:12px;padding:12px 14px}
+  /* mobile table scroll */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:18px}
+  .tbl{font-size:11px;white-space:nowrap;width:100%}
+  .tbl th{padding:9px 12px;font-size:9px}
+  .tbl td{padding:9px 12px}
+  /* mobile bstrip */
+  .bstrip{flex-direction:column;gap:8px;margin-top:16px}
+  /* mobile cta */
+  .cta-g{flex-direction:column}
+  .ctac{flex:none}
+  .prow{gap:6px}
+  .pill{font-size:10px;padding:4px 10px}
+}
+
+/* shared flow components */
+.fstep{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 10px;position:relative;z-index:1}
+.fcirc{width:86px;height:86px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;border:1px solid var(--gb);backdrop-filter:blur(10px)}
+.fc1{background:rgba(26,111,255,0.12);border-color:rgba(26,111,255,0.3)!important}
+.fc2{background:rgba(0,221,180,0.08);border-color:rgba(0,221,180,0.3)!important}
+.fc3{background:rgba(240,192,64,0.08);border-color:rgba(240,192,64,0.3)!important}
+.fc4{background:rgba(255,69,96,0.06);border-color:rgba(255,69,96,0.3)!important}
+.ftit{font-size:13px;font-weight:600;margin-bottom:5px}
+.fdesc{font-size:11px;color:var(--muted);line-height:1.55}
+.bstrip{display:flex;gap:10px}
+.bitem{flex:1;padding:13px 14px;background:rgba(0,221,180,0.05);border:1px solid rgba(0,221,180,0.14);border-radius:10px;display:flex;gap:10px;align-items:flex-start}
+.bicon{font-size:18px}
+.btit{font-size:12px;font-weight:600}
+.bdesc{font-size:10px;color:var(--muted);margin-top:2px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:11px 15px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--gb);font-weight:500}
+.tbl td{padding:12px 15px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.tbl tr.hl td{background:rgba(26,111,255,0.06)}
+.prow{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.pillar{display:flex;gap:16px;align-items:flex-start}
+.pnum{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;min-width:34px}
+.ptit{font-size:14px;font-weight:600;margin-bottom:4px}
+.pdsc{font-size:12px;color:var(--muted);line-height:1.55}
+.wcard{position:relative;overflow:hidden}
+.wnum{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:3px;margin-bottom:7px}
+.wtit{font-size:13px;font-weight:600;margin-bottom:5px}
+.wres{font-size:11px;color:var(--muted);line-height:1.55}
+.wres strong{color:var(--teal)}
+.wbadge{position:absolute;top:11px;right:11px;font-size:16px}
+.cta-g{display:flex;gap:13px;flex-wrap:wrap;margin-top:28px;justify-content:center}
+.ctac{flex:1 1 180px;background:var(--glass);border:1px solid var(--gb);border-radius:14px;padding:20px 16px;backdrop-filter:blur(12px);transition:all 0.3s}
+.ctac:hover{border-color:rgba(26,111,255,0.35);transform:translateY(-4px)}
+.cicon{font-size:26px;margin-bottom:10px}
+.ctit{font-size:13px;font-weight:600;margin-bottom:4px}
+.cdesc{font-size:12px;color:var(--muted);line-height:1.5}
+.fnote{font-size:12px;color:var(--muted);margin-top:28px;line-height:1.6;text-align:center}
+.fnote strong{color:var(--text)}
+@media(max-width:768px){.fnote{text-align:left}.cta-g{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="cur2"></div>
+<div class="orb orb1"></div><div class="orb orb2"></div>
+<div class="grid-bg"></div>
+<div class="logo"><span class="ldot"></span>АВТООПТ</div>
+<div class="prog" id="prog"></div>
+<div class="dots" id="dots"></div>
+<div class="ctr" id="ctr">01 / 08</div>
+<div class="nav"><button class="abtn" onclick="go(-1)">↑</button><button class="abtn" onclick="go(1)">↓</button></div>
+
+<div class="deck" id="deck">
+
+<!-- S1 HERO -->
+<section class="slide" data-s="0">
+<div style="max-width:1100px;width:100%;position:relative;z-index:1">
+  <div class="tag a1">AI · Автоматизация · Товарный бизнес</div>
+  <div class="h1 a2">АВТО<em>ОПТ</em></div>
+  <div class="h1 a2" style="font-size:clamp(28px,4.5vw,65px);color:var(--gold);margin-bottom:22px">Бизнес на автопилоте</div>
+  <p class="sub a3" style="max-width:500px">Полностью автоматизированная AI-платформа для товарного бизнеса. Контент, продажи, аналитика и поддержка — 24/7, без команды.</p>
+  <div class="a4" style="display:flex;flex-wrap:wrap;border:1px solid var(--gb);border-radius:14px;overflow:hidden;backdrop-filter:blur(16px);background:var(--glass);width:fit-content">
+    <div style="padding:18px 28px;border-right:1px solid var(--gb);text-align:center;min-width:120px"><div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:var(--blue-l)">24/7</div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px">Без остановок</div></div>
+    <div style="padding:18px 28px;border-right:1px solid var(--gb);text-align:center;min-width:120px"><div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:var(--gold)">×10</div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px">Рост продуктивности</div></div>
+    <div style="padding:18px 28px;border-right:1px solid var(--gb);text-align:center;min-width:120px"><div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:var(--teal)">2 ч</div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px">Твоё время/нед</div></div>
+    <div style="padding:18px 28px;text-align:center;min-width:120px"><div style="font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:var(--blue-l)">8</div><div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px">Недель до запуска</div></div>
+  </div>
+</div>
+</section>
+
+<!-- S2 ПРОБЛЕМА -->
+<section class="slide" data-s="1">
+<div style="max-width:1100px;width:100%;position:relative;z-index:1">
+  <div class="tag a1">// Проблема</div>
+  <div class="h1 a2">Ручной труд<br><s>убивает</s> масштаб</div>
+  <div class="g3d a3">
+    <div class="gc"><div style="font-size:24px;margin-bottom:9px">📲</div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Контент каждый день вручную</div><div style="font-size:12px;color:var(--muted);line-height:1.6">Видео, посты, описания — постоянно. Стоп контента = стоп роста.</div></div>
+    <div class="gc"><div style="font-size:24px;margin-bottom:9px">📦</div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Анализ товаров занимает часы</div><div style="font-size:12px;color:var(--muted);line-height:1.6">Найти нишу, проверить конкурентов, рассчитать маржу — всё вручную.</div></div>
+    <div class="gc"><div style="font-size:24px;margin-bottom:9px">💬</div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Поддержка съедает команду</div><div style="font-size:12px;color:var(--muted);line-height:1.6">Один и тот же вопрос 100 раз в день. Менеджер нужен круглосуточно.</div></div>
+    <div class="gc"><div style="font-size:24px;margin-bottom:9px">🔁</div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Нет системы удержания</div><div style="font-size:12px;color:var(--muted);line-height:1.6">Клиент купил — и пропал. Нет онбординга, нет апсейла. Деньги уходят.</div></div>
+    <div class="gc"><div style="font-size:24px;margin-bottom:9px">📉</div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Слабый бренд, много копий</div><div style="font-size:12px;color:var(--muted);line-height:1.6">Мошенники клонируют канал. Репутация под угрозой каждый день.</div></div>
+    <div class="gc"><div style="font-size:24px;margin-bottom:9px">⏳</div><div style="font-size:13px;font-weight:600;margin-bottom:5px">Владелец = главный сотрудник</div><div style="font-size:12px;color:var(--muted);line-height:1.6">Бизнес держится на одном. Выгорание неизбежно. Масштаб невозможен.</div></div>
+  </div>
+  <div class="ibar ibar-r a4">Владелец тратит <strong style="color:var(--red)">80% времени на рутину</strong> вместо стратегии. Это не бизнес — это самозанятость.</div>
+</div>
+</section>
+
+<!-- S3 РЕШЕНИЕ -->
+<section class="slide" data-s="2">
+<div style="max-width:1100px;width:100%;position:relative;z-index:1">
+  <div class="g2d">
+    <div>
+      <div class="tag a1">// Решение</div>
+      <div class="h1 a2">AI берёт<br>рутину<br>на <em>себя</em></div>
+      <p class="sub a3">АвтоОпт — операционная система для товарного бизнеса. Claude, HeyGen, ElevenLabs и Make.com работают как единый механизм вместо целой команды.</p>
+      <div class="prow a4">
+        <span class="pill pb">Claude API</span><span class="pill pt">HeyGen</span><span class="pill pg">ElevenLabs</span><span class="pill pb">Make.com</span><span class="pill pt">Stripe</span><span class="pill pg">Telegram Bot</span><span class="pill pb">DALL-E 3</span><span class="pill pt">Airtable</span>
+      </div>
+    </div>
+    <div class="a3" style="display:flex;flex-direction:column;gap:13px">
+      <div class="gc pillar"><div class="pnum c-b">01</div><div><div class="ptit">SaaS-подписка</div><div class="pdsc">AI-инструмент анализа товаров и ниш. Ежемесячная оплата — готовая аналитика в Telegram.</div></div></div>
+      <div class="gc pillar"><div class="pnum c-t">02</div><div><div class="ptit">Партнёрская сеть поставщиков</div><div class="pdsc">Каталог проверенных поставщиков. Каждое подключение приносит комиссию автоматически.</div></div></div>
+      <div class="gc pillar"><div class="pnum c-g">03</div><div><div class="ptit">Рекламная платформа</div><div class="pdsc">Бренды платят за доступ к аудитории с намерением покупать. Без ручных переговоров.</div></div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- S4 КАК РАБОТАЕТ -->
+<section class="slide" data-s="3">
+<div style="max-width:1100px;width:100%;position:relative;z-index:1">
+  <div class="tag a1">// Механика</div>
+  <div class="h1 a2">Как это<br>работает</div>
+  <div class="flow-d a3">
+    <div class="fstep"><div class="fcirc fc1">🎯</div><div class="ftit">Органический трафик</div><div class="fdesc">AI генерирует контент для YouTube, TikTok, Telegram, ВК каждый день автоматически</div></div>
+    <div class="fstep"><div class="fcirc fc2">🤖</div><div class="ftit">Telegram-бот</div><div class="fdesc">Встречает пользователя, даёт 3 дня бесплатно, отвечает на вопросы через Claude AI</div></div>
+    <div class="fstep"><div class="fcirc fc3">💳</div><div class="ftit">Автооплата Stripe</div><div class="fdesc">Подписка активируется автоматически, Stripe списывает ежемесячно без участия человека</div></div>
+    <div class="fstep"><div class="fcirc fc4">📈</div><div class="ftit">Рост и реинвест</div><div class="fdesc">A/B тесты выбирают лучший контент. Реферальная система множит аудиторию сама</div></div>
+  </div>
+  <div class="ibar a4" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <span>От <strong>первого просмотра</strong> до <strong>ежемесячного платежа</strong> — без единого ручного касания</span>
+    <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold);letter-spacing:2px;white-space:nowrap">0 сотрудников</span>
+  </div>
+</div>
+</section>
+
+<!-- S5 СТЕК -->
+<section class="slide" data-s="4">
+<div style="max-width:1100px;width:100%;position:relative;z-index:1">
+  <div class="tag a1">// AI-стек</div>
+  <div class="h1 a2">Команда из<br>AI-<em>инструментов</em></div>
+  <div class="g4d a3" style="margin-top:20px">
+    <div class="gc" style="border-top:2px solid var(--blue-l)"><div style="font-size:22px;margin-bottom:8px">🧠</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">Claude API</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Пишет контент, отвечает в боте, анализирует товары</div><span class="pill pb" style="font-size:9px;margin-top:8px;display:inline-block">ЯДРО</span></div>
+    <div class="gc" style="border-top:2px solid var(--teal)"><div style="font-size:22px;margin-bottom:8px">🎬</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">HeyGen</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Видео с AI-аватаром. Лицо канала без реального человека</div><span class="pill pt" style="font-size:9px;margin-top:8px;display:inline-block">ВИДЕО</span></div>
+    <div class="gc" style="border-top:2px solid var(--gold)"><div style="font-size:22px;margin-bottom:8px">🎙️</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">ElevenLabs</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Озвучивает сценарии живым голосом. Диктор не нужен</div><span class="pill pg" style="font-size:9px;margin-top:8px;display:inline-block">ГОЛОС</span></div>
+    <div class="gc" style="border-top:2px solid #a855f7"><div style="font-size:22px;margin-bottom:8px">⚙️</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">Make.com</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Связывает все инструменты в единый конвейер</div><span class="pill" style="font-size:9px;margin-top:8px;display:inline-block;background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.3);color:#a855f7">ОРКЕСТР</span></div>
+    <div class="gc" style="border-top:2px solid var(--red)"><div style="font-size:22px;margin-bottom:8px">🖼️</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">DALL-E 3</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Генерирует картинки для постов без дизайнера</div><span class="pill" style="font-size:9px;margin-top:8px;display:inline-block;background:rgba(255,69,96,0.1);border-color:rgba(255,69,96,0.3);color:var(--red)">ВИЗУАЛ</span></div>
+    <div class="gc" style="border-top:2px solid var(--blue-l)"><div style="font-size:22px;margin-bottom:8px">💳</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">Stripe</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Управляет подписками и апсейлами автоматически</div><span class="pill pb" style="font-size:9px;margin-top:8px;display:inline-block">ДЕНЬГИ</span></div>
+    <div class="gc" style="border-top:2px solid var(--teal)"><div style="font-size:22px;margin-bottom:8px">🤖</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">Telegram Bot</div><div style="font-size:11px;color:var(--muted);line-height:1.5">Онбординг, поддержка, рефералы — всё внутри</div><span class="pill pt" style="font-size:9px;margin-top:8px;display:inline-block">КАНАЛ</span></div>
+    <div class="gc" style="border-top:2px solid var(--gold)"><div style="font-size:22px;margin-bottom:8px">📊</div><div style="font-size:13px;font-weight:600;margin-bottom:3px">Airtable</div><div style="font-size:11px;color:var(--muted);line-height:1.5">База пользователей и трекер A/B тестов</div><span class="pill pg" style="font-size:9px;margin-top:8px;display:inline-block">ДАННЫЕ</span></div>
+  </div>
+</div>
+</section>
+
+<!-- S6 ДОХОД -->
+<section class="slide" data-s="5">
+<div style="max-width:1000px;width:100%;position:relative;z-index:1">
+  <div class="tag a1">// Финансы</div>
+  <div class="h1 a2">Твой доход<br>на <em>руки</em></div>
+  <div class="tbl-wrap a3">
+    <table class="tbl">
+      <thead><tr><th>Выручка/мес</th><th>Расходы</th><th>Реинвест</th><th>ТВОЙ ДОХОД</th><th>%</th></tr></thead>
+      <tbody>
+        <tr><td class="mono" style="color:var(--muted)">0–50 000 ₽</td><td class="mono" style="color:var(--muted)">5 000 ₽</td><td class="mono" style="color:var(--muted)">40 000 ₽</td><td class="mono c-b">5 000 ₽</td><td class="mono" style="color:var(--muted)">10%</td></tr>
+        <tr><td class="mono" style="color:var(--muted)">50–200 000 ₽</td><td class="mono" style="color:var(--muted)">15 000 ₽</td><td class="mono" style="color:var(--muted)">120 000 ₽</td><td class="mono c-b">до 65 000 ₽</td><td class="mono" style="color:var(--muted)">33%</td></tr>
+        <tr class="hl"><td class="mono" style="color:var(--muted)">200–500 000 ₽</td><td class="mono" style="color:var(--muted)">30 000 ₽</td><td class="mono" style="color:var(--muted)">200 000 ₽</td><td class="mono c-g">120–270 000 ₽</td><td class="mono c-g">40%</td></tr>
+        <tr class="hl"><td class="mono" style="color:var(--muted)">500 000–1,5 млн</td><td class="mono" style="color:var(--muted)">50 000 ₽</td><td class="mono" style="color:var(--muted)">300 000 ₽</td><td class="mono c-g">300 000–1 млн ₽</td><td class="mono c-g">50%</td></tr>
+        <tr><td class="mono" style="color:var(--muted)">1,5–5 млн ₽</td><td class="mono" style="color:var(--muted)">80 000 ₽</td><td class="mono" style="color:var(--muted)">500 000 ₽</td><td class="mono c-t">1,1–4,3 млн ₽</td><td class="mono c-t">55–60%</td></tr>
+        <tr><td class="mono" style="color:var(--muted)">5 млн ₽+</td><td class="mono" style="color:var(--muted)">150 000 ₽</td><td class="mono" style="color:var(--muted)">800 000 ₽</td><td class="mono c-t">4 млн ₽+</td><td class="mono c-t">65%+</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="ibar ibar-y a4"><strong style="color:var(--gold)">Правило:</strong> до 200к/мес — реинвест всё. 200–500к — забирай 40%. Свыше 500к — <strong>50–65% твои.</strong> Stripe переводит автоматически. Ты анонимен.</div>
+</div>
+</section>
+
+<!-- S7 ТАЙМЛАЙН -->
+<section class="slide" data-s="6">
+<div style="max-width:1100px;width:100%;position:relative;z-index:1">
+  <div class="tag a1">// Запуск</div>
+  <div class="h1 a2">8 недель<br>до <em>дохода</em></div>
+  <div class="g4d a3" style="margin-top:20px">
+    <div class="gc wcard"><span class="wbadge">🤖</span><div class="wnum">НЕДЕЛЯ 01</div><div class="wtit">Telegram-бот + Stripe</div><div class="wres">Бот принимает оплату. <strong>Бизнес живёт.</strong></div></div>
+    <div class="gc wcard"><span class="wbadge">📊</span><div class="wnum">НЕДЕЛЯ 02</div><div class="wtit">AI-анализ + поддержка</div><div class="wres">Бот отвечает и <strong>анализирует ниши.</strong></div></div>
+    <div class="gc wcard"><span class="wbadge">✍️</span><div class="wnum">НЕДЕЛЯ 03</div><div class="wtit">Генератор контента</div><div class="wres"><strong>Ежедневный контент</strong> автоматически.</div></div>
+    <div class="gc wcard"><span class="wbadge">🌐</span><div class="wnum">НЕДЕЛЯ 04</div><div class="wtit">Дистрибуция + Сайт</div><div class="wres">Контент идёт <strong>на все платформы.</strong></div></div>
+    <div class="gc wcard"><span class="wbadge">🎬</span><div class="wnum">НЕДЕЛЯ 05</div><div class="wtit">Видео-конвейер HeyGen</div><div class="wres">Видео <strong>без твоего лица.</strong></div></div>
+    <div class="gc wcard"><span class="wbadge">📈</span><div class="wnum">НЕДЕЛЯ 06</div><div class="wtit">A/B тесты</div><div class="wres">Система <strong>учится сама.</strong></div></div>
+    <div class="gc wcard"><span class="wbadge">🔗</span><div class="wnum">НЕДЕЛЯ 07</div><div class="wtit">Реферальная система</div><div class="wres">Пользователи <strong>приводят других.</strong></div></div>
+    <div class="gc wcard"><span class="wbadge">💰</span><div class="wnum">НЕДЕЛЯ 08</div><div class="wtit">Лицензия системы</div><div class="wres"><strong>Поток 2</strong> активирован.</div></div>
+  </div>
+  <div class="bstrip a4">
+    <div class="bitem"><div class="bicon">⚡</div><div><div class="btit">Claude Code</div><div class="bdesc">Готовые промпты — вставил и запустил</div></div></div>
+    <div class="bitem"><div class="bicon">🔒</div><div><div class="btit">Анонимность</div><div class="bdesc">Без публичного присутствия</div></div></div>
+    <div class="bitem"><div class="bicon">🌍</div><div><div class="btit">После России — Европа</div><div class="bdesc">Та же система, новая локализация</div></div></div>
+  </div>
+</div>
+</section>
+
+<!-- S8 CTA -->
+<section class="slide" data-s="7">
+<div style="max-width:900px;width:100%;position:relative;z-index:1">
+  <div class="tag a1">// Следующий шаг</div>
+  <div class="h1 a2">Построй раз —<br><b>зарабатывай</b><br>всегда</div>
+  <p class="sub a3" style="max-width:560px">Система за 8 недель. Работает без тебя. Масштабируется сама. Ты анонимен и получаешь пассивный доход.</p>
+  <div class="cta-g a4">
+    <div class="ctac"><div class="cicon">🤖</div><div class="ctit">Шаг 1 — Сегодня</div><div class="cdesc">Открой Claude Code, вставь промпт Задачи 1 — запусти бот</div></div>
+    <div class="ctac"><div class="cicon">💳</div><div class="ctit">Шаг 2 — Неделя 1</div><div class="cdesc">Подключи Stripe — бизнес принимает деньги</div></div>
+    <div class="ctac"><div class="cicon">⚙️</div><div class="ctit">Шаг 3 — Неделя 4</div><div class="cdesc">Make.com — контент идёт везде автоматически</div></div>
+    <div class="ctac"><div class="cicon">📈</div><div class="ctit">Результат — Месяц 2</div><div class="cdesc">Система работает, аудитория растёт, деньги капают</div></div>
+  </div>
+  <div class="fnote a5">Построено на базе анализа <strong>Optop</strong> · Стратегия под российский рынок · Масштаб без ограничений</div>
+</div>
+</section>
+
+</div>
+
+<script>
+const isMobile=window.innerWidth<=768;
+if(!isMobile){
+  const c1=document.getElementById('cur'),c2=document.getElementById('cur2');
+  let mx=0,my=0,tx=0,ty=0;
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;c1.style.left=mx+'px';c1.style.top=my+'px'});
+  (function lp(){tx+=(mx-tx)*0.14;ty+=(my-ty)*0.14;c2.style.left=tx+'px';c2.style.top=ty+'px';requestAnimationFrame(lp)})();
+  const slides=document.querySelectorAll('.slide'),N=slides.length;
+  let cur=0,busy=false;
+  const dotsEl=document.getElementById('dots');
+  slides.forEach((_,i)=>{const d=document.createElement('button');d.className='dot'+(i===0?' on':'');d.onclick=()=>goTo(i);dotsEl.appendChild(d)});
+  function ui(){dotsEl.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===cur));document.getElementById('ctr').textContent=String(cur+1).padStart(2,'0')+' / '+String(N).padStart(2,'0');document.getElementById('prog').style.width=((cur/(N-1))*100)+'%'}
+  function goTo(idx){if(idx===cur||busy||idx<0||idx>=N)return;busy=true;slides[cur].classList.remove('active');slides[cur].classList.add('exit');setTimeout(()=>{slides[cur].classList.remove('exit');cur=idx;slides[cur].classList.add('active');ui();setTimeout(()=>busy=false,700)},320)}
+  window.go=dir=>goTo(cur+dir);
+  slides[0].classList.add('active');ui();
+  document.addEventListener('keydown',e=>{if(['ArrowDown','ArrowRight',' '].includes(e.key)){e.preventDefault();go(1)}if(['ArrowUp','ArrowLeft'].includes(e.key)){e.preventDefault();go(-1)}});
+  let wt;document.addEventListener('wheel',e=>{clearTimeout(wt);wt=setTimeout(()=>go(e.deltaY>0?1:-1),80)},{passive:true});
+  let ty0=0;document.addEventListener('touchstart',e=>ty0=e.touches[0].clientY,{passive:true});document.addEventListener('touchend',e=>{const d=ty0-e.changedTouches[0].clientY;if(Math.abs(d)>50)go(d>0?1:-1)},{passive:true});
+}
+</script>
+</body>
+</html>
